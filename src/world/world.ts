@@ -275,6 +275,52 @@ export class WorldEngine {
     this.terrain = new THREE.Mesh(geometry, material);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
+
+    // Runway
+    this.createRunway();
+  }
+
+  private createRunway(): void {
+    // Runway surface
+    const rwLength = 3000;
+    const rwWidth = 45;
+    const rwGeo = new THREE.PlaneGeometry(rwWidth, rwLength);
+    rwGeo.rotateX(-Math.PI / 2);
+    const rwMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
+    const runway = new THREE.Mesh(rwGeo, rwMat);
+    runway.position.set(0, 0.5, 0);
+    runway.receiveShadow = true;
+    this.scene.add(runway);
+
+    // Centerline markings
+    const markingMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (let i = -rwLength / 2 + 20; i < rwLength / 2 - 20; i += 40) {
+      const dashGeo = new THREE.PlaneGeometry(1.5, 20);
+      dashGeo.rotateX(-Math.PI / 2);
+      const dash = new THREE.Mesh(dashGeo, markingMat);
+      dash.position.set(0, 0.6, i);
+      this.scene.add(dash);
+    }
+
+    // Threshold markings
+    for (const end of [-1, 1]) {
+      const threshGeo = new THREE.PlaneGeometry(rwWidth - 10, 15);
+      threshGeo.rotateX(-Math.PI / 2);
+      const thresh = new THREE.Mesh(threshGeo, markingMat);
+      thresh.position.set(0, 0.6, end * (rwLength / 2 - 15));
+      this.scene.add(thresh);
+    }
+
+    // Runway edge lights
+    const lightGeo = new THREE.SphereGeometry(0.5, 6, 4);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffaa });
+    for (let i = -rwLength / 2; i <= rwLength / 2; i += 100) {
+      for (const side of [-1, 1]) {
+        const light = new THREE.Mesh(lightGeo, lightMat);
+        light.position.set(side * (rwWidth / 2 + 2), 1, i);
+        this.scene.add(light);
+      }
+    }
   }
 
   /** Create water plane */

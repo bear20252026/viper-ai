@@ -86,6 +86,20 @@
     #tool-count { position: fixed; bottom: 16px; left: 16px; background: rgba(10,14,20,0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 14px; font-size: 0.72rem; color: #6b7280; z-index: 100; }
     #tool-count span { color: #00d4ff; font-weight: 600; }
     
+    /* Settings Panel */
+    #settings-panel { position: fixed; inset: 0; background: rgba(10,14,20,0.95); backdrop-filter: blur(20px); display: none; align-items: center; justify-content: center; z-index: 300; }
+    #settings-panel.show { display: flex; }
+    .settings-card { background: rgba(15,20,30,0.95); border: 1px solid rgba(0,212,255,0.15); border-radius: 16px; padding: 32px; width: 480px; max-width: 90vw; max-height: 80vh; overflow-y: auto; }
+    .settings-card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 24px; color: #00d4ff; letter-spacing: 0.05em; }
+    .setting-group { margin-bottom: 20px; }
+    .setting-group label { display: block; font-size: 0.78rem; color: #9ca3af; margin-bottom: 6px; letter-spacing: 0.03em; text-transform: uppercase; }
+    .setting-group input, .setting-group select { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #e0e6ed; font-size: 0.85rem; outline: none; transition: border-color 0.2s; }
+    .setting-group input:focus, .setting-group select:focus { border-color: rgba(0,212,255,0.4); }
+    .setting-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .setting-actions button { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: #e0e6ed; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .setting-actions button:hover { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.25); }
+    .setting-actions button.primary { background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(123,47,247,0.15)); border-color: rgba(0,212,255,0.3); }
+    
     @media (max-width: 768px) {
       #ai-panel { width: calc(100vw - 32px); right: 16px; left: 16px; }
       #menu h1 { font-size: 2.5rem; }
@@ -112,6 +126,7 @@
       <button class="menu-btn" data-mode="campaign"><span class="icon">📋</span> Campaign</button>
       <button class="menu-btn" data-mode="carrier"><span class="icon">🚢</span> Carrier Launch</button>
       <button class="menu-btn" data-mode="landing"><span class="icon">🎯</span> Landing Practice</button>
+      <button class="menu-btn" id="menu-settings"><span class="icon">⚙</span> AI Settings</button>
     </div>
   </div>
   
@@ -139,12 +154,42 @@
         <button class="quick-btn" data-cmd="weather">🌤 Weather</button>
         <button class="quick-btn" data-cmd="weapons">🎯 Weapons</button>
         <button class="quick-btn" data-cmd="autopilot">🤖 Autopilot</button>
+        <button class="quick-btn" data-cmd="livery">🎨 Livery</button>
+        <button class="quick-btn" data-cmd="campaign">📋 Campaign</button>
+        <button class="quick-btn" data-cmd="settings">⚙ Settings</button>
       </div>
       <div id="ai-input-area">
         <textarea id="ai-input" placeholder="Ask AI to do anything... (e.g. 'climb to 20000 feet and turn left to heading 270')" rows="1"></textarea>
         <button id="ai-send" disabled>
           <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Settings Panel -->
+  <div id="settings-panel">
+    <div class="settings-card">
+      <h2>⚙ AI SETTINGS</h2>
+      <div class="setting-group">
+        <label>API Endpoint URL</label>
+        <input type="text" id="ai-api-url" placeholder="https://api.openai.com/v1/chat/completions" />
+      </div>
+      <div class="setting-group">
+        <label>API Key</label>
+        <input type="password" id="ai-api-key" placeholder="sk-..." />
+      </div>
+      <div class="setting-group">
+        <label>Model</label>
+        <input type="text" id="ai-model" placeholder="gpt-4o-mini" />
+      </div>
+      <div class="setting-group">
+        <label>System Prompt (optional)</label>
+        <textarea id="ai-system-prompt" rows="4" placeholder="Custom system prompt for the AI copilot..."></textarea>
+      </div>
+      <div class="setting-actions">
+        <button id="settings-close">Cancel</button>
+        <button id="settings-save" class="primary">Save</button>
       </div>
     </div>
   </div>

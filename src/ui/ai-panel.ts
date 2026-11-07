@@ -87,7 +87,14 @@ export class AIPanel {
       weather: "What's the current weather and time of day?",
       weapons: "Show my current loadout and available weapons",
       autopilot: "Set level flight and maintain current heading",
+      livery: "Show my current livery and list available paint schemes",
+      campaign: "Show my campaign progress and available missions",
+      settings: "Open AI settings",
     };
+    if (cmd === "settings") {
+      document.getElementById("settings-panel")!.classList.add("show");
+      return;
+    }
     const text = commands[cmd];
     if (text) {
       this.input.value = text;

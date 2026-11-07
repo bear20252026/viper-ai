@@ -9,6 +9,8 @@ import * as THREE from "three";
 import { FlightEngine } from "./engine/flight.js";
 import { WorldEngine } from "./world/world.js";
 import { CombatSystem } from "./combat/combat.js";
+import { LiverySystem } from "./engine/livery.js";
+import { CampaignSystem } from "./engine/campaign.js";
 import { registerAllTools } from "./tools/index.js";
 import { registry } from "./core/registry.js";
 import { gameState } from "./core/state.js";
@@ -26,6 +28,8 @@ class Game {
   private flightEngine!: FlightEngine;
   private worldEngine!: WorldEngine;
   private combatSystem!: CombatSystem;
+  private liverySystem!: LiverySystem;
+  private campaignSystem!: CampaignSystem;
   private aiBackend!: AIBackend;
   private aiPanel!: AIPanel;
   private hud!: HUD;
@@ -77,58 +81,123 @@ class Game {
   private createAircraftMesh(): THREE.Group {
     const group = new THREE.Group();
 
-    // Fuselage
-    const bodyGeo = new THREE.CylinderGeometry(1.2, 0.6, 16, 8);
+    // Fuselage — sleeker shape
+    const bodyGeo = new THREE.CylinderGeometry(0.8, 0.4, 14, 8);
     bodyGeo.rotateX(Math.PI / 2);
     const bodyMat = new THREE.MeshLambertMaterial({ color: 0x4a5568 });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     body.castShadow = true;
     group.add(body);
 
-    // Nose cone
-    const noseGeo = new THREE.ConeGeometry(0.6, 3, 8);
+    // Nose cone — sharper
+    const noseGeo = new THREE.ConeGeometry(0.4, 4, 8);
     noseGeo.rotateX(-Math.PI / 2);
     const nose = new THREE.Mesh(noseGeo, bodyMat);
-    nose.position.z = -9.5;
+    nose.position.z = -9;
     nose.castShadow = true;
     group.add(nose);
 
-    // Wings
-    const wingGeo = new THREE.BoxGeometry(10, 0.15, 3);
+    // Wings — swept delta style
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, 0);
+    wingShape.lineTo(-6, 4);
+    wingShape.lineTo(-6, 5);
+    wingShape.lineTo(0, 4);
+    wingShape.lineTo(6, 5);
+    wingShape.lineTo(6, 4);
+    wingShape.lineTo(0, 0);
+    const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.12, bevelEnabled: false });
+    wingGeo.rotateX(Math.PI / 2);
     const wing = new THREE.Mesh(wingGeo, bodyMat);
-    wing.position.set(0, 0, 1);
+    wing.position.set(0, -0.1, 0.5);
     wing.castShadow = true;
     group.add(wing);
 
-    // Tail
-    const tailGeo = new THREE.BoxGeometry(4, 0.12, 2);
+    // Tail planes
+    const tailGeo = new THREE.BoxGeometry(5, 0.1, 2.5);
     const tail = new THREE.Mesh(tailGeo, bodyMat);
-    tail.position.set(0, 0.5, 7);
+    tail.position.set(0, 0.3, 6.5);
     tail.castShadow = true;
     group.add(tail);
 
-    // Vertical stabilizer
-    const vstabGeo = new THREE.BoxGeometry(0.12, 3, 2);
+    // Vertical stabilizer — swept
+    const vstabShape = new THREE.Shape();
+    vstabShape.moveTo(0, 0);
+    vstabShape.lineTo(-1.5, 3.5);
+    vstabShape.lineTo(-0.5, 3.5);
+    vstabShape.lineTo(0.8, 0);
+    vstabShape.lineTo(0, 0);
+    const vstabGeo = new THREE.ExtrudeGeometry(vstabShape, { depth: 0.1, bevelEnabled: false });
+    vstabGeo.rotateY(Math.PI / 2);
     const vstab = new THREE.Mesh(vstabGeo, bodyMat);
-    vstab.position.set(0, 1.5, 7);
+    vstab.position.set(0.05, 0.2, 5.5);
     vstab.castShadow = true;
     group.add(vstab);
 
-    // Canopy
-    const canopyGeo = new THREE.SphereGeometry(1, 8, 6);
-    const canopyMat = new THREE.MeshPhongMaterial({ color: 0x88ccff, transparent: true, opacity: 0.4, shininess: 100 });
+    // Canopy — tinted bubble
+    const canopyGeo = new THREE.SphereGeometry(0.9, 8, 6);
+    const canopyMat = new THREE.MeshPhongMaterial({ color: 0x4488cc, transparent: true, opacity: 0.35, shininess: 120, specular: 0xffffff });
     const canopy = new THREE.Mesh(canopyGeo, canopyMat);
-    canopy.position.set(0, 0.8, -2);
-    canopy.scale.set(0.8, 0.6, 1.5);
+    canopy.position.set(0, 0.6, -2.5);
+    canopy.scale.set(0.7, 0.5, 1.8);
     group.add(canopy);
 
-    // Engine glow
-    const engineGeo = new THREE.CylinderGeometry(0.5, 0.4, 0.5, 8);
+    // Engine nozzle
+    const nozzleGeo = new THREE.CylinderGeometry(0.45, 0.35, 0.8, 8);
+    nozzleGeo.rotateX(Math.PI / 2);
+    const nozzleMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+    nozzle.position.set(0, 0, 7.2);
+    group.add(nozzle);
+
+    // Engine glow (afterburner)
+    const engineGeo = new THREE.CylinderGeometry(0.35, 0.25, 1.5, 8);
     engineGeo.rotateX(Math.PI / 2);
-    const engineMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    const engineMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.8 });
     const engine = new THREE.Mesh(engineGeo, engineMat);
-    engine.position.set(0, 0, 8.2);
+    engine.position.set(0, 0, 8);
+    engine.visible = false;
     group.add(engine);
+
+    // Wingtip missiles
+    const missileGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6);
+    missileGeo.rotateX(Math.PI / 2);
+    const missileMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+    const missileL = new THREE.Mesh(missileGeo, missileMat);
+    missileL.position.set(-5.5, -0.2, 1.5);
+    group.add(missileL);
+    const missileR = new THREE.Mesh(missileGeo, missileMat);
+    missileR.position.set(5.5, -0.2, 1.5);
+    group.add(missileR);
+
+    // Landing gear (simple)
+    const gearMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const gearGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.5, 6);
+    const wheelGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.15, 8);
+    wheelGeo.rotateZ(Math.PI / 2);
+    
+    // Nose gear
+    const noseGear = new THREE.Mesh(gearGeo, gearMat);
+    noseGear.position.set(0, -1.2, -4);
+    group.add(noseGear);
+    const noseWheel = new THREE.Mesh(wheelGeo, gearMat);
+    noseWheel.position.set(0, -1.9, -4);
+    group.add(noseWheel);
+    
+    // Main gears
+    const mainGearL = new THREE.Mesh(gearGeo, gearMat);
+    mainGearL.position.set(-1.5, -1.2, 2);
+    group.add(mainGearL);
+    const mainWheelL = new THREE.Mesh(wheelGeo, gearMat);
+    mainWheelL.position.set(-1.5, -1.9, 2);
+    group.add(mainWheelL);
+    
+    const mainGearR = new THREE.Mesh(gearGeo, gearMat);
+    mainGearR.position.set(1.5, -1.2, 2);
+    group.add(mainGearR);
+    const mainWheelR = new THREE.Mesh(wheelGeo, gearMat);
+    mainWheelR.position.set(1.5, -1.9, 2);
+    group.add(mainWheelR);
 
     return group;
   }
@@ -137,6 +206,9 @@ class Game {
     this.flightEngine = new FlightEngine("f16c");
     this.worldEngine = new WorldEngine(this.scene);
     this.combatSystem = new CombatSystem();
+    this.liverySystem = new LiverySystem();
+    this.liverySystem.setAircraftMesh(this.aircraftMesh!);
+    this.campaignSystem = new CampaignSystem();
   }
 
   private initAI(): void {
@@ -157,6 +229,14 @@ class Game {
 
     this.menu.setModeSelectHandler((mode) => this.startGame(mode));
 
+    // Settings panel
+    this.initSettingsPanel();
+
+    // Menu settings button
+    document.getElementById("menu-settings")!.addEventListener("click", () => {
+      document.getElementById("settings-panel")!.classList.add("show");
+    });
+
     // Show menu after loader
     setTimeout(() => {
       this.menu.show();
@@ -164,6 +244,48 @@ class Game {
 
     // Update tool count display
     document.querySelector("#tool-count span")!.textContent = String(registry.count);
+  }
+
+  private initSettingsPanel(): void {
+    const panel = document.getElementById("settings-panel")!;
+    const closeBtn = document.getElementById("settings-close")!;
+    const saveBtn = document.getElementById("settings-save")!;
+    const urlInput = document.getElementById("ai-api-url") as HTMLInputElement;
+    const keyInput = document.getElementById("ai-api-key") as HTMLInputElement;
+    const modelInput = document.getElementById("ai-model") as HTMLInputElement;
+    const promptInput = document.getElementById("ai-system-prompt") as HTMLTextAreaElement;
+
+    // Load saved config
+    const saved = localStorage.getItem("viper-ai-config");
+    if (saved) {
+      const config = JSON.parse(saved);
+      urlInput.value = config.apiUrl || "";
+      keyInput.value = config.apiKey || "";
+      modelInput.value = config.model || "gpt-4o-mini";
+      promptInput.value = config.systemPrompt || "";
+    }
+
+    // Open settings via tool-count click
+    document.getElementById("tool-count")!.addEventListener("click", () => {
+      panel.classList.add("show");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      panel.classList.remove("show");
+    });
+
+    saveBtn.addEventListener("click", () => {
+      const config = {
+        apiUrl: urlInput.value,
+        apiKey: keyInput.value,
+        model: modelInput.value,
+        systemPrompt: promptInput.value,
+      };
+      localStorage.setItem("viper-ai-config", JSON.stringify(config));
+      this.aiBackend.updateConfig(config);
+      panel.classList.remove("show");
+      this.aiPanel.addMessage("system", "AI configuration saved. API endpoint updated.");
+    });
   }
 
   private initInput(): void {
@@ -211,7 +333,7 @@ class Game {
   }
 
   private registerTools(): void {
-    registerAllTools(this.flightEngine, this.worldEngine, this.combatSystem);
+    registerAllTools(this.flightEngine, this.worldEngine, this.combatSystem, this.liverySystem, this.campaignSystem);
     console.log(`[Game] ${registry.count} AI tools registered`);
     document.querySelector("#tool-count span")!.textContent = String(registry.count);
   }
@@ -327,6 +449,9 @@ class Game {
       // Update combat
       this.combatSystem.update(dt);
 
+      // Update campaign
+      this.campaignSystem.update(dt);
+
       // Update mission time
       gameState.state.time += dt;
 
@@ -349,11 +474,25 @@ class Game {
         if (engineGlow) {
           const mat = engineGlow.material as THREE.MeshBasicMaterial;
           if (aircraftState.afterburner) {
+            engineGlow.visible = true;
             mat.color.setHex(0xff3300);
-            engineGlow.scale.set(1.5, 1.5, 2);
-          } else {
+            mat.opacity = 0.9;
+            engineGlow.scale.set(1.2, 1.2, 1.5);
+          } else if (aircraftState.throttle > 0.7) {
+            engineGlow.visible = true;
             mat.color.setHex(0xff6600);
+            mat.opacity = 0.6;
             engineGlow.scale.set(1, 1, 1);
+          } else {
+            engineGlow.visible = false;
+          }
+        }
+
+        // Hide landing gear when retracted
+        const gearMeshes = [13, 14, 15, 16, 17, 18]; // indices of gear parts
+        for (const idx of gearMeshes) {
+          if (this.aircraftMesh.children[idx]) {
+            this.aircraftMesh.children[idx].visible = aircraftState.gearDown;
           }
         }
       }

@@ -8,17 +8,23 @@ import { registerWorldTools, setWorldEngine as setWorldEngineTools } from "./wor
 import { registerCombatTools, setCombatSystem } from "./combat-tools.js";
 import { registerNavigationTools, setFlightEngine as setNavFlightEngine } from "./navigation-tools.js";
 import { registerMissionTools } from "./mission-tools.js";
+import { registerLiveryTools, setLiverySystem } from "./livery-tools.js";
+import { registerCampaignTools, setCampaignSystem } from "./campaign-tools.js";
 
 export function registerAllTools(
   flightEngine: import("../engine/flight.js").FlightEngine,
   worldEngine: import("../world/world.js").WorldEngine,
-  combatSystem: import("../combat/combat.js").CombatSystem
+  combatSystem: import("../combat/combat.js").CombatSystem,
+  liverySystem: import("../engine/livery.js").LiverySystem,
+  campaignSystem: import("../engine/campaign.js").CampaignSystem
 ): void {
   // Set engine references for tools that need direct engine access
   setFlightEngineTools(flightEngine);
   setNavFlightEngine(flightEngine);
   setWorldEngineTools(worldEngine);
   setCombatSystem(combatSystem);
+  setLiverySystem(liverySystem);
+  setCampaignSystem(campaignSystem);
 
   // Register all tool categories
   registerFlightTools();
@@ -26,6 +32,8 @@ export function registerAllTools(
   registerCombatTools();
   registerNavigationTools();
   registerMissionTools();
+  registerLiveryTools();
+  registerCampaignTools();
 
   console.log(`[Tools] Registered all tools`);
 }
